@@ -9,9 +9,9 @@ def grow(inputs, depth, max_depth):
 
     inputs = tf.layers.dense(
         inputs=inputs,
-        units=128,
+        units=32,
         use_bias=False,
-        kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
+        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
     )
 
     inputs = tf.layers.batch_normalization(
@@ -33,9 +33,9 @@ def shrink(inputs_seq, depth, min_depth):
 
     inputs = tf.layers.dense(
         inputs=inputs,
-        units=128,
+        units=32,
         use_bias=False,
-        kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
+        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
     )
 
     inputs = tf.layers.batch_normalization(
@@ -50,13 +50,33 @@ def shrink(inputs_seq, depth, min_depth):
     return inputs
 
 
-outputs = shrink(grow(inputs, 0, 3), 3, 0)
+outputs = inputs
+
+# outputs = shrink(grow(outputs, 0, 3), 3, 0)
+
+for _ in range(128):
+
+    outputs = tf.layers.dense(
+        inputs=outputs,
+        units=32,
+        use_bias=False,
+        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
+    )
+
+    outputs = tf.layers.batch_normalization(
+        inputs=outputs,
+        axis=-1,
+        training=True,
+        fused=True
+    )
+
+    outputs = tf.nn.sigmoid(outputs)
 
 outputs = tf.layers.dense(
     inputs=outputs,
     units=1,
     use_bias=False,
-    kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
+    kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
 )
 
 outputs = tf.layers.batch_normalization(
