@@ -2,57 +2,97 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-x = tf.placeholder(tf.float32, [1])
-y = tf.placeholder(tf.float32, [1])
-z = tf.placeholder(tf.float32, [8])
+inputs = tf.placeholder(tf.float32, [None, 10])
 
-inputs = tf.concat([x, y, z], axis=0)
-inputs = tf.stack([inputs])
 
-inputs = tf.layers.dense(
-    inputs=inputs,
-    units=32,
-    activation=tf.nn.relu,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
-)
+def grow(inputs, depth, max_depth):
 
-inputs = tf.layers.dense(
-    inputs=inputs,
-    units=64,
-    activation=tf.nn.relu,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
-)
+    inputs = tf.layers.dense(
+        inputs=inputs,
+        units=128,
+        use_bias=False,
+        kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
+    )
 
-inputs = tf.layers.dense(
-    inputs=inputs,
-    units=32,
-    activation=tf.nn.relu,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
-)
+    inputs = tf.layers.batch_normalization(
+        inputs=inputs,
+        axis=-1,
+        training=True,
+        fused=True
+    )
 
-pixel = tf.layers.dense(
-    inputs=inputs,
+    inputs = tf.nn.sigmoid(inputs)
+
+    return inputs if depth == max_depth else [grow(inputs, depth + 1, max_depth) for _ in range(2)]
+
+
+def shrink(inputs_seq, depth, min_depth):
+
+    inputs = tf.concat(inputs_seq, axis=1) if depth == min_depth else tf.concat(
+        [shrink(inputs, depth - 1, min_depth) for inputs in inputs_seq], axis=1)
+
+    inputs = tf.layers.dense(
+        inputs=inputs,
+        units=128,
+        use_bias=False,
+        kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
+    )
+
+    inputs = tf.layers.batch_normalization(
+        inputs=inputs,
+        axis=-1,
+        training=True,
+        fused=True
+    )
+
+    inputs = tf.nn.sigmoid(inputs)
+
+    return inputs
+
+
+outputs = shrink(grow(inputs, 0, 1), 1, 0)
+
+outputs = tf.layers.dense(
+    inputs=outputs,
     units=3,
-    activation=tf.nn.sigmoid,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
+    use_bias=False,
+    kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
 )
 
-pixel = tf.Print(pixel, [pixel], "pixel: ")
+outputs = tf.layers.batch_normalization(
+    inputs=outputs,
+    axis=-1,
+    training=True,
+    fused=True
+)
+
+outputs = tf.nn.sigmoid(outputs)
+
+pixel = tf.Print(outputs, [outputs], "pixel: ")
+
+
+def scale(input, input_min, input_max, output_min, output_max):
+
+    return output_min + (input - input_min) / (input_max - input_min) * (output_max - output_min)
+
 
 with tf.Session() as session:
 
-    session.run(tf.global_variables_initializer())
+    for _ in range(10):
 
-    image = np.array([[
-        session.run(
-            fetches=pixel,
-            feed_dict={x: [i], y: [j], z: np.random.normal(size=[8])}
-        ) for i in range(256)
-    ] for j in range(256)])
+        session.run(tf.global_variables_initializer())
 
-    cv2.imshow("image", image)
-    cv2.waitKey()
+        z = np.random.uniform(low=0.0, high=1.0, size=8)
+
+        feed_dict = {inputs: [
+            np.concatenate([[x, y], z])
+            for y in np.linspace(0.0, 1.0, 1024)
+            for x in np.linspace(0.0, 1.0, 1024)
+        ]}
+
+        image = session.run(pixel, feed_dict=feed_dict).reshape([1024, 1024, 3])
+
+        cv2.imshow("image", image)
+
+        if cv2.waitKey(1000) == ord("q"):
+            break
