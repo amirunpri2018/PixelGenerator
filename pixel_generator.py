@@ -27,22 +27,6 @@ inputs = tf.layers.dense(
 
 inputs = tf.layers.dense(
     inputs=inputs,
-    units=128,
-    activation=tf.nn.relu,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
-)
-
-inputs = tf.layers.dense(
-    inputs=inputs,
-    units=64,
-    activation=tf.nn.relu,
-    kernel_initializer=tf.variance_scaling_initializer(),
-    bias_initializer=tf.zeros_initializer()
-)
-
-inputs = tf.layers.dense(
-    inputs=inputs,
     units=32,
     activation=tf.nn.sigmoid,
     kernel_initializer=tf.variance_scaling_initializer(),
