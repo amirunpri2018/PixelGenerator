@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-inputs = tf.placeholder(tf.float32, [None, 10])
+inputs = tf.placeholder(tf.float32, [None, 3])
 
 
 def grow(inputs, depth, max_depth):
@@ -11,7 +11,7 @@ def grow(inputs, depth, max_depth):
         inputs=inputs,
         units=32,
         use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
+        kernel_initializer=tf.random_normal_initializer()
     )
 
     inputs = tf.layers.batch_normalization(
@@ -35,7 +35,7 @@ def shrink(inputs_seq, depth, min_depth):
         inputs=inputs,
         units=32,
         use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
+        kernel_initializer=tf.random_normal_initializer()
     )
 
     inputs = tf.layers.batch_normalization(
@@ -60,7 +60,7 @@ for _ in range(128):
         inputs=outputs,
         units=32,
         use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
+        kernel_initializer=tf.random_normal_initializer()
     )
 
     outputs = tf.layers.batch_normalization(
@@ -76,7 +76,7 @@ outputs = tf.layers.dense(
     inputs=outputs,
     units=1,
     use_bias=False,
-    kernel_initializer=tf.random_normal_initializer(stddev=1e+3)
+    kernel_initializer=tf.random_normal_initializer()
 )
 
 outputs = tf.layers.batch_normalization(
@@ -95,16 +95,19 @@ with tf.Session() as session:
 
     session.run(tf.global_variables_initializer())
 
-    z = np.random.uniform(low=0.0, high=1.0, size=8)
+    z = np.random.uniform(low=0.0, high=1.0)
 
-    feed_dict = {inputs: [
-        np.concatenate([[x, y], z])
-        for y in np.linspace(0.0, 1.0, 1024)
-        for x in np.linspace(0.0, 1.0, 1024)
-    ]}
+    feed_dict = {
+        inputs: [
+            [x, y, z]
+            for y in np.linspace(0.0, 1.0, 1024)
+            for x in np.linspace(0.0, 1.0, 1024)
+        ]
+    }
 
     image = session.run(pixel, feed_dict=feed_dict).reshape([1024, 1024, 1])
+    image = image ** 1.5
 
+    cv2.imwrite("image.png", image)
     cv2.imshow("image", image)
-
     cv2.waitKey()
