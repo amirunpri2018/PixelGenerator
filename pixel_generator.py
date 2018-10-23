@@ -67,8 +67,8 @@ with tf.Session() as session:
         session.run(
             fetches=pixel,
             feed_dict={x: [i], y: [j], z: np.random.normal(size=[8])}
-        ) for i in range(1024)
-    ] for j in range(1024)])
+        ) for i in range(256)
+    ] for j in range(256)])
 
     cv2.imshow("image", image)
     cv2.waitKey()
