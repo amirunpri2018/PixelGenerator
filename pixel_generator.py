@@ -50,11 +50,11 @@ def shrink(inputs_seq, depth, min_depth):
     return inputs
 
 
-outputs = shrink(grow(inputs, 0, 1), 1, 0)
+outputs = shrink(grow(inputs, 0, 3), 3, 0)
 
 outputs = tf.layers.dense(
     inputs=outputs,
-    units=3,
+    units=1,
     use_bias=False,
     kernel_initializer=tf.variance_scaling_initializer(distribution="uniform")
 )
@@ -78,21 +78,18 @@ def scale(input, input_min, input_max, output_min, output_max):
 
 with tf.Session() as session:
 
-    for _ in range(10):
+    session.run(tf.global_variables_initializer())
 
-        session.run(tf.global_variables_initializer())
+    z = np.random.uniform(low=0.0, high=1.0, size=8)
 
-        z = np.random.uniform(low=0.0, high=1.0, size=8)
+    feed_dict = {inputs: [
+        np.concatenate([[x, y], z])
+        for y in np.linspace(0.0, 1.0, 1024)
+        for x in np.linspace(0.0, 1.0, 1024)
+    ]}
 
-        feed_dict = {inputs: [
-            np.concatenate([[x, y], z])
-            for y in np.linspace(0.0, 1.0, 1024)
-            for x in np.linspace(0.0, 1.0, 1024)
-        ]}
+    image = session.run(pixel, feed_dict=feed_dict).reshape([1024, 1024, 1])
 
-        image = session.run(pixel, feed_dict=feed_dict).reshape([1024, 1024, 3])
+    cv2.imshow("image", image)
 
-        cv2.imshow("image", image)
-
-        if cv2.waitKey(1000) == ord("q"):
-            break
+    cv2.waitKey()
