@@ -71,11 +71,6 @@ outputs = tf.nn.sigmoid(outputs)
 pixel = tf.Print(outputs, [outputs], "pixel: ")
 
 
-def scale(input, input_min, input_max, output_min, output_max):
-
-    return output_min + (input - input_min) / (input_max - input_min) * (output_max - output_min)
-
-
 with tf.Session() as session:
 
     session.run(tf.global_variables_initializer())
