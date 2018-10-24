@@ -2,40 +2,77 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-inputs = tf.placeholder(tf.float32, [None, 3])
 
+def generator(inputs, stddev):
 
-def grow(inputs, depth, max_depth):
+    def grow(inputs, depth, max_depth):
+
+        inputs = tf.layers.dense(
+            inputs=inputs,
+            units=32,
+            use_bias=False,
+            kernel_initializer=tf.random_normal_initializer(stddev=stddev)
+        )
+
+        inputs = tf.layers.batch_normalization(
+            inputs=inputs,
+            axis=-1,
+            training=True,
+            fused=True
+        )
+
+        inputs = tf.nn.sigmoid(inputs)
+
+        return inputs if depth == max_depth else [grow(inputs, depth + 1, max_depth) for _ in range(2)]
+
+    def shrink(inputs_seq, depth, min_depth):
+
+        inputs = tf.concat(inputs_seq, axis=1) if depth == min_depth else tf.concat(
+            [shrink(inputs, depth - 1, min_depth) for inputs in inputs_seq], axis=1)
+
+        inputs = tf.layers.dense(
+            inputs=inputs,
+            units=32,
+            use_bias=False,
+            kernel_initializer=tf.random_normal_initializer(stddev=stddev)
+        )
+
+        inputs = tf.layers.batch_normalization(
+            inputs=inputs,
+            axis=-1,
+            training=True,
+            fused=True
+        )
+
+        inputs = tf.nn.sigmoid(inputs)
+
+        return inputs
+
+    # inputs = shrink(grow(inputs, 0, 3), 3, 0)
+
+    for _ in range(128):
+
+        inputs = tf.layers.dense(
+            inputs=inputs,
+            units=32,
+            use_bias=False,
+            kernel_initializer=tf.random_normal_initializer(stddev=stddev)
+        )
+
+        inputs = tf.layers.batch_normalization(
+            inputs=inputs,
+            axis=-1,
+            training=True,
+            fused=True
+        )
+
+        inputs = tf.nn.sigmoid(inputs)
 
     inputs = tf.layers.dense(
         inputs=inputs,
-        units=32,
+        units=1,
         use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=0.1)
-    )
-
-    inputs = tf.layers.batch_normalization(
-        inputs=inputs,
-        axis=-1,
-        training=True,
-        fused=True
-    )
-
-    inputs = tf.nn.sigmoid(inputs)
-
-    return inputs if depth == max_depth else [grow(inputs, depth + 1, max_depth) for _ in range(2)]
-
-
-def shrink(inputs_seq, depth, min_depth):
-
-    inputs = tf.concat(inputs_seq, axis=1) if depth == min_depth else tf.concat(
-        [shrink(inputs, depth - 1, min_depth) for inputs in inputs_seq], axis=1)
-
-    inputs = tf.layers.dense(
-        inputs=inputs,
-        units=32,
-        use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=0.1)
+        kernel_initializer=tf.random_normal_initializer(stddev=stddev)
     )
 
     inputs = tf.layers.batch_normalization(
@@ -50,46 +87,8 @@ def shrink(inputs_seq, depth, min_depth):
     return inputs
 
 
-outputs = inputs
-
-# outputs = shrink(grow(outputs, 0, 3), 3, 0)
-
-for _ in range(128):
-
-    outputs = tf.layers.dense(
-        inputs=outputs,
-        units=32,
-        use_bias=False,
-        kernel_initializer=tf.random_normal_initializer(stddev=0.1)
-    )
-
-    outputs = tf.layers.batch_normalization(
-        inputs=outputs,
-        axis=-1,
-        training=True,
-        fused=True
-    )
-
-    outputs = tf.nn.sigmoid(outputs)
-
-outputs = tf.layers.dense(
-    inputs=outputs,
-    units=1,
-    use_bias=False,
-    kernel_initializer=tf.random_normal_initializer(stddev=0.1)
-)
-
-outputs = tf.layers.batch_normalization(
-    inputs=outputs,
-    axis=-1,
-    training=True,
-    fused=True
-)
-
-outputs = tf.nn.sigmoid(outputs)
-
-pixel = tf.Print(outputs, [outputs], "pixel: ")
-
+inputs = tf.placeholder(tf.float32, [None, 3])
+outputs = generator(inputs, stddev=0.1)
 
 with tf.Session() as session:
 
@@ -105,9 +104,10 @@ with tf.Session() as session:
         ]
     }
 
-    image = session.run(pixel, feed_dict=feed_dict).reshape([1024, 1024, 1])
+    image = session.run(outputs, feed_dict=feed_dict)
+    image = np.reshape(image, [1024, 1024, 1])
     image = image ** 1.5
 
-    cv2.imwrite("image.png", image)
+    cv2.imwrite("image.png", image * 255.0)
     cv2.imshow("image", image)
     cv2.waitKey()
