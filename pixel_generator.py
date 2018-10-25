@@ -88,7 +88,7 @@ def generator(inputs, stddev):
 
 
 inputs = tf.placeholder(tf.float32, [None, 3])
-outputs = generator(inputs, stddev=0.05)
+outputs = generator(inputs, stddev=0.1)
 
 with tf.Session() as session:
 
