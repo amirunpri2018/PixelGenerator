@@ -50,17 +50,22 @@ def generate(image_size):
 
         session.run(tf.global_variables_initializer())
 
-        z = np.random.normal()
+        xs = np.linspace(
+            np.random.normal(0.0, 1.0),
+            np.random.normal(1.0, 1.0),
+            image_size
+        )
+        ys = np.linspace(
+            np.random.normal(0.0, 1.0),
+            np.random.normal(1.0, 1.0),
+            image_size
+        )
+        z = np.random.normal(0.0, 1.0)
 
-        feed_dict = {
-            inputs: [
-                [x, y, z]
-                for y in np.linspace(0.0, 1.0, image_size)
-                for x in np.linspace(0.0, 1.0, image_size)
-            ]
-        }
-
-        image = session.run(outputs, feed_dict=feed_dict)
+        image = session.run(
+            fetches=outputs,
+            feed_dict={inputs: [[x, y, z] for x in xs for y in ys]}
+        )
         image = np.reshape(image, [image_size, image_size])
         image = image ** 2
 
