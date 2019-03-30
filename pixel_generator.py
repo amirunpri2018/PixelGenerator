@@ -14,13 +14,11 @@ def generator(inputs, stddev):
             use_bias=False,
             kernel_initializer=tf.initializers.random_normal(stddev=stddev)
         )
-
         inputs = tf.layers.batch_normalization(
             inputs=inputs,
             axis=-1,
             training=True
         )
-
         inputs = tf.nn.sigmoid(inputs)
 
     inputs = tf.layers.dense(
@@ -29,13 +27,11 @@ def generator(inputs, stddev):
         use_bias=False,
         kernel_initializer=tf.initializers.random_normal(stddev=stddev)
     )
-
     inputs = tf.layers.batch_normalization(
         inputs=inputs,
         axis=-1,
         training=True
     )
-
     inputs = tf.nn.sigmoid(inputs)
 
     return inputs
